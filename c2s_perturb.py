@@ -133,7 +133,7 @@ The cell type corresponding to these genes is:"""
     )
     answer_template = "{cell_type}"
     prompt_formatter = CustomPromptFormatter(
-        task_name='cell_type_pred_given_tissue',
+        task_name='cell_type_prediction',
         input_prompt=custom_input_prompt_template,
         answer_template=answer_template,
         top_k_genes=top_k_genes
@@ -142,7 +142,7 @@ The cell type corresponding to these genes is:"""
     # 5. Fine-tune
     csmodel.fine_tune(
         csdata=csdata,
-        task='cell_type_pred_given_tissue',
+        task='cell_type_prediction',
         train_args=train_args,
         loss_on_response_only=False,
         top_k_genes=top_k_genes,
@@ -317,7 +317,7 @@ def main():
     print(f"Analysis complete. Results saved to {results_csv}")
     
     push_to_github(results_csv)
-    shutdown_instance()
+    # shutdown_instance()
 
 if __name__ == '__main__':
     main()
