@@ -33,11 +33,11 @@ import boto3
 # ----------------------------------------------------------------------------
 class CustomPromptFormatter(PromptFormatter):
     def __init__(self, task_name, input_prompt, answer_template, top_k_genes):
-        super().__init__(task=task_name, top_k_genes=top_k_genes)
-        # self.task_name = task_name
+        super().__init__()
+        self.task_name = task_name
         self.input_prompt = input_prompt
         self.answer_template = answer_template
-        # self.top_k_genes = top_k_genes
+        self.top_k_genes = top_k_genes
         assert isinstance(top_k_genes, int) and top_k_genes > 0, "'top_k_genes' must be an integer > 0"
 
     def format_hf_ds(self, hf_ds):
@@ -133,7 +133,7 @@ The cell type corresponding to these genes is:"""
     )
     answer_template = "{cell_type}"
     prompt_formatter = CustomPromptFormatter(
-        task_name='cell_type_prediction',
+        task_name='cell_type_pred_given_tissue',
         input_prompt=custom_input_prompt_template,
         answer_template=answer_template,
         top_k_genes=top_k_genes
@@ -142,7 +142,7 @@ The cell type corresponding to these genes is:"""
     # 5. Fine-tune
     csmodel.fine_tune(
         csdata=csdata,
-        task='cell_type_prediction',
+        task='cell_type_pred_given_tissue',
         train_args=train_args,
         loss_on_response_only=False,
         top_k_genes=top_k_genes,
