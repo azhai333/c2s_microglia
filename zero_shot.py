@@ -47,7 +47,7 @@ class CustomPromptFormatter(PromptFormatter):
                 tissue_type=rec['tissue'],
                 cell_sentence=rec['cell_sentence']
             )
-            out = self.answer_template.format(cell_type=rec['State'])
+            out = self.answer_template.format(cell_type=rec['cell_type'])
             model_inputs_list.append(inp)
             responses_list.append(out)
         ds_dict = {
