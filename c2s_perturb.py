@@ -15,6 +15,7 @@ import pandas as pd
 from datasets import Dataset
 from datetime import datetime
 from transformers import TrainingArguments
+import subprocess
 
 # Cell2Sentence imports
 import cell2sentence as cs
@@ -24,6 +25,8 @@ from cell2sentence.prompt_formatter import PromptFormatter
 SEED = 1234
 random.seed(SEED)
 np.random.seed(SEED)
+import requests
+import boto3
 
 # ----------------------------------------------------------------------------
 # Custom prompt formatter
@@ -251,6 +254,20 @@ def perturbation_analysis(
             })
     return pd.DataFrame(results)
 
+def push_to_github(results_csv):
+    """Commit and push results to GitHub."""
+    try:
+        subprocess.run(['git', 'add', results_csv], check=True)
+        subprocess.run(['git', 'commit', '-m', 'Add perturbation results'], check=True)
+        subprocess.run(['git', 'push'], check=True)
+        print("✓ Results pushed to GitHub.")
+    except subprocess.CalledProcessError as e:
+        print("❌ Git push failed:", e)
+
+def shutdown_instance():
+    instance_id = requests.get('http://169.254.169.254/latest/meta-data/instance-id').text
+    ec2 = boto3.client('ec2', region_name='us-east-1')
+    ec2.terminate_instances(InstanceIds=[instance_id])
 
 def main():
     # User parameters (modify as needed)
@@ -298,6 +315,9 @@ def main():
     results_csv = os.path.join(save_dir, 'perturbation_results.csv')
     results_df.to_csv(results_csv, index=False)
     print(f"Analysis complete. Results saved to {results_csv}")
+    
+    push_to_github(results_csv)
+    shutdown_instance()
 
 if __name__ == '__main__':
     main()
