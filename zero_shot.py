@@ -75,7 +75,7 @@ total_cells = len(arrow_ds["cell_type"])
 sample_indices = np.random.choice(total_cells, size=num_cells, replace=False)
 
 # Subset Arrow dataset
-arrow_ds_subset = {k: v.take(sample_indices) for k, v in arrow_ds.items()}
+arrow_ds_subset = arrow_ds.select(sample_indices)
 
 # Wrap in CSData object
 csdata = cs.CSData.csdata_from_arrow(
