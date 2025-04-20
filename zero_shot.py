@@ -139,7 +139,12 @@ The cell type corresponding to these genes is:"""
         top_k_genes=top_k_genes
     )
 
-    csmodel = cs.CSModel(model_name_or_path=pretrained_model_path)
+    save_dir = './c2s_zero_shot_microglia'
+    save_name = 'microglia_homeostasis'
+
+    csmodel = cs.CSModel(model_name_or_path=pretrained_model_path,save_dir=save_dir,
+    save_name=save_name)
+    
     run_zero_shot_benchmark(
         adata,
         csmodel,
@@ -148,6 +153,7 @@ The cell type corresponding to these genes is:"""
         tissue_label,
         organism_label
     )
+
 
 if __name__ == '__main__':
     main()
