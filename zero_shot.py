@@ -28,6 +28,7 @@ def prepare_adata(adata, home_cluster_label, tissue_label, organism_label):
     )
     adata.obs['tissue'] = tissue_label
     adata.obs['organism'] = organism_label
+    print(adata.obs)
     return adata
 
 SEED = 1234
@@ -70,7 +71,7 @@ c2s_save_dir = "./c2s_zero_shot_microglia"  # C2S dataset will be saved into thi
 c2s_save_name = "zero_shot_data"  # This will be the name of our C2S dataset on disk
 
 # Sample 10,000 indices
-num_cells = 10000
+num_cells = 100
 total_cells = len(arrow_ds["cell_type"])
 sample_indices = np.random.choice(total_cells, size=num_cells, replace=False)
 
@@ -116,4 +117,5 @@ plt.figure(figsize=(10, 8))
 disp.plot(xticks_rotation=45)
 plt.title("Confusion Matrix")
 plt.tight_layout()
+plt.savefig("confusion_matrix_10k.png", dpi=300)
 plt.show()
