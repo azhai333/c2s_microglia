@@ -31,9 +31,11 @@ np.random.seed(SEED)
 # ----------------------------------------------------------------------------
 class CustomPromptFormatter(PromptFormatter):
     def __init__(self, input_prompt, answer_template, top_k_genes):
-        super().__init__(task="cell_type_prediction", top_k_genes=top_k_genes)
+        super().__init__()
+        self.task_name = "cell_type_prediction"
         self.input_prompt = input_prompt
         self.answer_template = answer_template
+        self.top_k_genes = top_k_genes
 
     def format_hf_ds(self, hf_ds):
         model_inputs_list = []
