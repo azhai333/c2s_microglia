@@ -33,11 +33,11 @@ import boto3
 # ----------------------------------------------------------------------------
 class CustomPromptFormatter(PromptFormatter):
     def __init__(self, task_name, input_prompt, answer_template, top_k_genes):
-        super().__init__()
-        self.task_name = task_name
+        super().__init__(task=task_name, top_k_genes=top_k_genes)
+        # self.task_name = task_name
         self.input_prompt = input_prompt
         self.answer_template = answer_template
-        self.top_k_genes = top_k_genes
+        # self.top_k_genes = top_k_genes
         assert isinstance(top_k_genes, int) and top_k_genes > 0, "'top_k_genes' must be an integer > 0"
 
     def format_hf_ds(self, hf_ds):
@@ -119,7 +119,7 @@ def finetune_c2s(
         per_device_train_batch_size=8,
         logging_steps=50,
         save_steps=200,
-        evaluation_strategy='steps'
+        eval_strategy='steps'
     )
 
     # 4. Custom prompt formatter
