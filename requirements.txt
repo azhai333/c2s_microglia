@@ -1,0 +1,24 @@
+# Core Python libraries
+numpy
+pandas
+
+# AnnData + Scanpy for single-cell processing
+anndata
+scanpy
+
+# Hugging Face Transformers and Datasets
+transformers>=4.35.0
+datasets>=2.14.0
+
+# DeepMind's Cell2Sentence (via GitHub)
+cell2sentence @ git+https://github.com/google-deepmind/cell2sentence.git
+
+# AWS SDKs for auto-shutdown logic
+boto3
+requests
+
+# Optional (for subprocess Git interactions)
+GitPython  # OR rely on subprocess; not strictly needed if git CLI is used
+
+# To be safe with GPU-backed instances:
+torch>=2.0  # or match the CUDA version on your AMI
