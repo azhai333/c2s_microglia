@@ -77,8 +77,18 @@ csdata = cs.CSData.csdata_from_arrow(
     dataset_backend="arrow"
 )
 
+# Sample 10,000 random indices
+num_cells = 10000
+total_cells = len(arrow_ds["cell_type"])
+sample_indices = np.random.choice(total_cells, size=num_cells, replace=False)
+
+# Subset the CSData to these indices
+csdata_subset = csdata.select(sample_indices.tolist())
+arrow_ds_subset = {k: v[sample_indices.tolist()] for k, v in arrow_ds.items()}
+
+# Predict only on the sampled subset
 predicted_cell_types = predict_cell_types_of_data(
-    csdata=csdata,
+    csdata=csdata_subset,
     csmodel=csmodel,
     n_genes=200
 )
@@ -87,7 +97,7 @@ predicted_cell_types = predict_cell_types_of_data(
 all_preds = []
 all_labels = []
 
-for model_pred, gt_label in zip(predicted_cell_types, arrow_ds["cell_type"]):
+for model_pred, gt_label in zip(predicted_cell_types, arrow_ds_subset["cell_type"]):
     # Remove trailing period if present
     if model_pred.endswith('.'):
         model_pred = model_pred[:-1]
@@ -96,15 +106,14 @@ for model_pred, gt_label in zip(predicted_cell_types, arrow_ds["cell_type"]):
 
 # Compute accuracy
 accuracy = accuracy_score(all_labels, all_preds)
-print(f"\nOverall accuracy: {accuracy:.4f}")
+print(f"\nOverall accuracy on 10,000 sampled cells: {accuracy:.4f}")
 
-# Compute confusion matrix
+# Confusion matrix
 cm = confusion_matrix(all_labels, all_preds, labels=np.unique(all_labels))
 disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=np.unique(all_labels))
 
-# Plot
 plt.figure(figsize=(10, 8))
 disp.plot(xticks_rotation=45)
-plt.title("Confusion Matrix")
+plt.title("Confusion Matrix (Sampled 10k Cells)")
 plt.tight_layout()
 plt.show()
