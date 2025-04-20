@@ -116,10 +116,13 @@ def finetune_c2s(
     train_args = TrainingArguments(
         output_dir=os.path.join(save_dir, 'finetune_output'),
         num_train_epochs=3,
-        per_device_train_batch_size=8,
+        per_device_train_batch_size=1, 
+        gradient_accumulation_steps=4,
         logging_steps=50,
         save_steps=200,
-        eval_strategy='steps'
+        eval_strategy='steps',
+        fp16=True,
+        gradient_checkpointing=True
     )
 
     # 4. Custom prompt formatter
