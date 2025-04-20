@@ -254,7 +254,7 @@ def perturbation_analysis(
 
 def main():
     # User parameters (modify as needed)
-    adata_path = './ad_data.h5ad'
+    adata_path = '/home/ec2-user/c2s/ad_data.h5ad'
     pretrained_model_path = 'vandijklab/C2S-Scale-Pythia-1b-pt'
     save_dir = './c2s_finetune_microglia'
     save_name = 'microglia_homeostasis'
