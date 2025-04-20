@@ -11,7 +11,7 @@ transformers>=4.35.0
 datasets>=2.14.0
 
 # DeepMind's Cell2Sentence (via GitHub)
-cell2sentence @ git+https://github.com/google-deepmind/cell2sentence.git
+cell2sentence
 
 # AWS SDKs for auto-shutdown logic
 boto3
