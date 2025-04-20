@@ -1,159 +1,110 @@
-#!/usr/bin/env python
-"""
-Script for in-silico perturbation of microglia scRNA-seq dataset
-using Google's Cell2Sentence LLM (C2S).
-
-This version includes a zero-shot benchmark that evaluates how well
-C2S can classify cluster-level profiles before fine-tuning.
-"""
+# Python built-in libraries
 import os
+import pickle
 import random
-import numpy as np
-import scanpy as sc
-import anndata
-import pandas as pd
-from datasets import Dataset
-from transformers import TrainingArguments
-from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
+from collections import Counter
+from sklearn.metrics import accuracy_score, confusion_matrix, ConfusionMatrixDisplay
 import matplotlib.pyplot as plt
+
+# Third-party libraries
+import numpy as np
+from tqdm import tqdm
+
+# Single-cell libraries
+import anndata
+import scanpy as sc
 
 # Cell2Sentence imports
 import cell2sentence as cs
-from cell2sentence.prompt_formatter import PromptFormatter
+from cell2sentence.tasks import predict_cell_types_of_data
 
-# Set random seeds for reproducibility
+def prepare_adata(adata, home_cluster_label, tissue_label, organism_label):
+    """
+    Annotate AnnData for C2S: define cell_type, tissue, organism in .obs
+    """
+    # Map clusters to cell_type labels
+    adata.obs['cell_type'] = adata.obs['State'].apply(
+        lambda x: 'homeostatic' if x == home_cluster_label else f'cluster_{x}'
+    )
+    adata.obs['tissue'] = tissue_label
+    adata.obs['organism'] = organism_label
+    return adata
+
 SEED = 1234
 random.seed(SEED)
 np.random.seed(SEED)
 
-# ----------------------------------------------------------------------------
-# Custom prompt formatter
-# ----------------------------------------------------------------------------
-class CustomPromptFormatter(PromptFormatter):
-    def __init__(self, input_prompt, answer_template, top_k_genes):
-        super().__init__()
-        self.task_name = "cell_type_prediction"
-        self.input_prompt = input_prompt
-        self.answer_template = answer_template
-        self.top_k_genes = top_k_genes
+home_cluster_label = 'MG0'  # replace with your homeostatic cluster ID or label
+tissue_label = 'microglia'
+organism_label = 'human'
 
-    def format_hf_ds(self, hf_ds):
-        model_inputs_list = []
-        responses_list = []
-        for rec in hf_ds:
-            inp = self.input_prompt.format(
-                num_genes=len(rec['cell_sentence'].split()),
-                organism=rec['organism'],
-                tissue_type=rec['tissue'],
-                cell_sentence=rec['cell_sentence']
-            )
-            out = self.answer_template.format(cell_type=rec['cell_type'])
-            model_inputs_list.append(inp)
-            responses_list.append(out)
-        ds_dict = {
-            'sample_type': ['cell_type_prediction'] * len(model_inputs_list),
-            'model_input': model_inputs_list,
-            'response': responses_list
-        }
-        return Dataset.from_dict(ds_dict)
+DATA_PATH = "/home/ec2-user/c2s/ad_data.h5ad"
 
-# ----------------------------------------------------------------------------
-# Benchmarking function for zero-shot accuracy
-# ----------------------------------------------------------------------------
-def run_zero_shot_benchmark(adata, csmodel, prompt_formatter, top_k_genes, tissue_label, organism_label):
-    print("Running zero-shot classification benchmark...\n")
+adata = anndata.read_h5ad(DATA_PATH)
 
-    X = adata.X.toarray() if hasattr(adata.X, 'toarray') else adata.X
-    df_expr = pd.DataFrame(X, index=adata.obs_names, columns=adata.var_names)
+adata = prepare_adata(adata, home_cluster_label, tissue_label, organism_label)
 
-    # Averaging expression per cell type gives a stable, representative profile
-    # of each class for a more controlled comparison
-    avg_exp = df_expr.groupby(adata.obs['State']).mean()
+adata.obs = adata.obs[["cell_type", "tissue", "organism"]]
 
-    true_labels = []
-    predicted_labels = []
+adata_obs_cols_to_keep = adata.obs.columns.tolist()
 
-    for label, expr in avg_exp.iterrows():
-        top_genes = expr.sort_values(ascending=False).head(top_k_genes).index.tolist()
-        sentence = ' '.join(top_genes)
-        ds = Dataset.from_dict({
-            'cell_sentence': [sentence],
-            'tissue': [tissue_label],
-            'organism': [organism_label],
-            'cell_type': [label]  # ground truth for benchmark
-        })
-        formatted_ds = prompt_formatter.format_hf_ds(ds)
-        pred = csmodel.predict(formatted_ds['model_input'])[0]
+# Create CSData object
+arrow_ds, vocabulary = cs.CSData.adata_to_arrow(
+    adata=adata, 
+    random_state=SEED, 
+    sentence_delimiter=' ',
+    label_col_names=adata_obs_cols_to_keep
+)
 
-        true_labels.append(label)
-        predicted_labels.append(pred)
+# Define CSModel object
+cell_type_prediction_model_path = "vandijklab/C2S-Scale-Pythia-1b-pt"
+save_dir = "./c2s_zero_shot_microglia"
+save_name = "zero_shot_model"
+csmodel = cs.CSModel(
+    model_name_or_path=cell_type_prediction_model_path,
+    save_dir=save_dir,
+    save_name=save_name
+)
 
-        print(f"True: {label:20s} | Predicted: {pred}")
+c2s_save_dir = "./c2s_zero_shot_microglia"  # C2S dataset will be saved into this directory
+c2s_save_name = "zero_shot_data"  # This will be the name of our C2S dataset on disk
 
-    results = pd.DataFrame({
-        'true': true_labels,
-        'pred': predicted_labels
-    })
-    accuracy = (results['true'].str.lower() == results['pred'].str.lower()).mean()
-    print(f"\n✅ Zero-shot accuracy: {accuracy:.2%}")
+csdata = cs.CSData.csdata_from_arrow(
+    arrow_dataset=arrow_ds, 
+    vocabulary=vocabulary,
+    save_dir=c2s_save_dir,
+    save_name=c2s_save_name,
+    dataset_backend="arrow"
+)
 
-    # Plot confusion matrix
-    print("\nConfusion Matrix:")
-    labels = sorted(set(true_labels + predicted_labels))
-    cm = confusion_matrix(true_labels, predicted_labels, labels=labels)
-    disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=labels)
-    fig, ax = plt.subplots(figsize=(10, 8))
-    disp.plot(ax=ax, cmap='Blues', xticks_rotation=45)
-    plt.title("Zero-Shot Cell Type Classification Confusion Matrix")
-    plt.tight_layout()
-    plt.savefig("zero_shot_confusion_matrix.png")
-    print("Confusion matrix saved to zero_shot_confusion_matrix.png")
+predicted_cell_types = predict_cell_types_of_data(
+    csdata=csdata,
+    csmodel=csmodel,
+    n_genes=200
+)
 
-    return results
+# Collect predictions and ground truths
+all_preds = []
+all_labels = []
 
-# ----------------------------------------------------------------------------
-# Main
-# ----------------------------------------------------------------------------
-def main():
-    adata_path = '/home/ec2-user/c2s/ad_data.h5ad'
-    pretrained_model_path = 'vandijklab/C2S-Scale-Pythia-1b-pt'
-    tissue_label = 'brain'
-    organism_label = 'human'
-    top_k_genes = 100
+for model_pred, gt_label in zip(predicted_cell_types, arrow_ds["cell_type"]):
+    # Remove trailing period if present
+    if model_pred.endswith('.'):
+        model_pred = model_pred[:-1]
+    all_preds.append(model_pred)
+    all_labels.append(gt_label)
 
-    adata = sc.read_h5ad(adata_path)
+# Compute accuracy
+accuracy = accuracy_score(all_labels, all_preds)
+print(f"\nOverall accuracy: {accuracy:.4f}")
 
-    custom_input_prompt_template = (
-        """
-Given below is a list of {num_genes} gene names ordered by descending expression level in a {organism} cell.
-Given this expression representation as well as the tissue which this cell originates from, your task is to give the cell type which this cell belongs to.
-Tissue type: {tissue_type}
-Cell sentence: {cell_sentence}.
-The cell type corresponding to these genes is:"""
-    )
-    answer_template = "{cell_type}"
+# Compute confusion matrix
+cm = confusion_matrix(all_labels, all_preds, labels=np.unique(all_labels))
+disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=np.unique(all_labels))
 
-    prompt_formatter = CustomPromptFormatter(
-        input_prompt=custom_input_prompt_template,
-        answer_template=answer_template,
-        top_k_genes=top_k_genes
-    )
-
-    save_dir = './c2s_zero_shot_microglia'
-    save_name = 'microglia_homeostasis'
-
-    csmodel = cs.CSModel(model_name_or_path=pretrained_model_path,save_dir=save_dir,
-    save_name=save_name)
-    
-    run_zero_shot_benchmark(
-        adata,
-        csmodel,
-        prompt_formatter,
-        top_k_genes,
-        tissue_label,
-        organism_label
-    )
-
-
-if __name__ == '__main__':
-    main()
+# Plot
+plt.figure(figsize=(10, 8))
+disp.plot(xticks_rotation=45)
+plt.title("Confusion Matrix")
+plt.tight_layout()
+plt.show()
