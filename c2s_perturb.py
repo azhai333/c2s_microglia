@@ -275,7 +275,7 @@ def shutdown_instance():
 def main():
     # User parameters (modify as needed)
     adata_path = '/home/ec2-user/c2s/ad_data.h5ad'
-    pretrained_model_path = 'vandijklab/C2S-Pythia-410m-diverse-single-and-multi-cell-tasks'
+    pretrained_model_path = 'vandijklab/pythia-160m-c2s'
     save_dir = './c2s_finetune_microglia'
     save_name = 'microglia_homeostasis'
     home_cluster_label = 'MG0'  # replace with your homeostatic cluster ID or label
