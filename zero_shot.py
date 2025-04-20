@@ -26,9 +26,9 @@ def prepare_adata(adata, home_cluster_label, tissue_label, organism_label):
     adata.obs['cell_type'] = adata.obs['State'].apply(
         lambda x: 'homeostatic' if x == home_cluster_label else f'cluster_{x}'
     )
+    print(adata.obs)
     adata.obs['tissue'] = tissue_label
     adata.obs['organism'] = organism_label
-    print(adata.obs)
     return adata
 
 SEED = 1234
