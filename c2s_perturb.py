@@ -259,7 +259,7 @@ def main():
     save_dir = './c2s_finetune_microglia'
     save_name = 'microglia_homeostasis'
     home_cluster_label = 'MG0'  # replace with your homeostatic cluster ID or label
-    tissue_label = 'brain'
+    tissue_label = 'microglia'
     organism_label = 'human'
     top_n_hvgs = 2000
     top_k_genes = 100
