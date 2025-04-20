@@ -91,6 +91,8 @@ predicted_cell_types = predict_cell_types_of_data(
     n_genes=200
 )
 
+print(predicted_cell_types)
+
 # Collect predictions and ground truths
 all_preds = []
 all_labels = []
