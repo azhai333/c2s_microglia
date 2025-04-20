@@ -23,10 +23,7 @@ def prepare_adata(adata, home_cluster_label, tissue_label, organism_label):
     Annotate AnnData for C2S: define cell_type, tissue, organism in .obs
     """
     # Map clusters to cell_type labels
-    adata.obs['cell_type'] = adata.obs['State'].apply(
-        lambda x: 'homeostatic' if x == home_cluster_label else f'cluster_{x}'
-    )
-    print(adata.obs)
+    adata.obs['cell_type'] = adata.obs['State']
     adata.obs['tissue'] = tissue_label
     adata.obs['organism'] = organism_label
     return adata
@@ -46,6 +43,7 @@ adata = anndata.read_h5ad(DATA_PATH)
 adata = prepare_adata(adata, home_cluster_label, tissue_label, organism_label)
 
 adata.obs = adata.obs[["cell_type", "tissue", "organism"]]
+print(adata.obs)
 
 adata_obs_cols_to_keep = adata.obs.columns.tolist()
 
