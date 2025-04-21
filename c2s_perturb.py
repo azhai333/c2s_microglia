@@ -97,8 +97,17 @@ def finetune_c2s(
         sentence_delimiter=' ',
         label_col_names=['cell_type', 'tissue', 'organism']
     )
+
+    # Sample 10,000 indices
+    num_cells = 10000
+    total_cells = len(arrow_ds["cell_type"])
+    sample_indices = np.random.choice(total_cells, size=num_cells, replace=False)
+
+    # Subset Arrow dataset
+    arrow_ds_subset = arrow_ds.select(sample_indices)
+
     csdata = cs.CSData.csdata_from_arrow(
-        arrow_dataset=arrow_ds,
+        arrow_dataset=arrow_ds_subset,
         vocabulary=vocabulary,
         save_dir=save_dir,
         save_name=save_name,
